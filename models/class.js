@@ -21,6 +21,10 @@ const classSchema = new Schema({
     floor: {
         type: String,
         required: true
+    },
+    note: {
+        type: String,
+        default: ""
     }
 })
 
