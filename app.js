@@ -14,7 +14,7 @@ app
     .use(bodyParser.json())
 
 
-mongoose.connect(process.env.MONGODB_URI).then(() => {
+mongoose.connect(process.env.MONGODB_URI).then(() => {  
     console.log("Database connected")
 })
 

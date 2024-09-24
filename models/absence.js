@@ -1,37 +1,29 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const classSchema = new Schema({
-    scheduleId: {
+const absenceSchema = new Schema({
+    volunteerId: {
         type: Schema.Types.ObjectId,
-        ref: "Schedule",
+        ref: "Volunteer",
         required: true
     },
     studentId: {
         type: Schema.Types.ObjectId,
-        ref: "Students",
+        ref: "Student",
         required: true
     },
-    subject: {
+    date: {
+        type: Date,
+        required: true
+    },
+    confirmation: {
         type: String,
         required: true
     },
-    building: {
+    documentation: {
         type: String,
         required: true
-    },
-    room: {
-        type: String,
-        required: true
-    },
-    floor: {
-        type: String,
-        required: true
-    },
-    note: {
-        type: String,
-        default: ""
     }
 })
 
-module.exports = mongoose.model("Class", classSchema)
+module.exports = mongoose.model("Absence", absenceSchema)
