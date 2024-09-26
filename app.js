@@ -13,7 +13,8 @@ app
     .use(cors())
     .use(bodyParser.json())
 
-
-mongoose.connect(process.env.MONGODB_URI).then(() => {  
-    console.log("Database connected")
+mongoose.connect(process.env.MONGODB_URI).then(() => {
+    app.listen(process.env.PORT, () => {
+        console.log(`Server is running at http://localhost:${process.env.PORT}`)
+    })
 })
