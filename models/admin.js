@@ -2,6 +2,10 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 const adminSchema = new Schema({
+    NIM: {
+        type: String,
+        required: true
+    },
     name: {
         type: String,
         required: true
@@ -12,7 +16,12 @@ const adminSchema = new Schema({
     },
     contact: {
         type: String,
-        required: true
+        default: ""
+    },
+    isLeader: {
+        type: Boolean,
+        required: true,
+        default: false
     }
 })
 
