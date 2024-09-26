@@ -6,8 +6,8 @@ const { config } = require('dotenv')
 const cors = require('cors')
 
 config()
-const app = express()
-const VERSION = "/api/v1"
+const app = express();
+const VERSION = "/api/v1";
 
 app
     .use(cors())
