@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 const { errResponse } = require("../utils/error");
 
 // Register function for Volunteer and Student
-const register = async (req, res) => {
+const register = async (req, res, next) => {
   const { nim, name, password, confirmPassword, role } = req.body;
 
   try {
@@ -37,11 +37,17 @@ const register = async (req, res) => {
         }
 
         res
+          .status(201)
           .cookie("token", token, {
             httpOnly: true,
           })
-          .json(newVolunteer);
+          .json({
+            message: "Data has been successfully created!",
+            data: newVolunteer,
+          });
       });
+
+      return;
     }
 
     // If the role is other than volunteer then the code below will be executed
@@ -53,7 +59,7 @@ const register = async (req, res) => {
     });
 
     // Save data to the database
-    newStudent.save();
+    await newStudent.save();
 
     // Creating a token using jsonwebtoken
     jwt.sign({ nim: nim }, process.env.JWT_TOKEN, (error, token) => {
@@ -62,13 +68,18 @@ const register = async (req, res) => {
       }
 
       res
+        .status(201)
         .cookie("token", token, {
           httpOnly: true,
         })
-        .json(newStudent);
+        .json({
+          message: "Data has been successfully created!",
+          data: newStudent,
+        });
     });
   } catch (err) {
-    errResponse("Internal Server Error", 500);
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
   }
 };
 
