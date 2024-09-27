@@ -10,41 +10,41 @@ const getSchedule = async (req, res, next) => {
         const schedules = await Schedule.aggregate([
             {
                 $lookup: {
-                    from: "Class",
-                    localField: "scheduleId",
-                    foreignField: "_id",
+                    from: "classes",
+                    localField: "_id",
+                    foreignField: "scheduleId",
                     as: "classDetails"
                 }
             },
             {
                 $lookup: {
-                    from: "Student",
-                    localField: "_id",
-                    foreignField: "studentId",
-                    as: "Student Detail"
+                    from: "students",
+                    localField: "studentId",
+                    foreignField: "_id",
+                    as: "students"
                 }
             },
             {
                 $lookup: {
-                    from: 'Volunteer',
-                    localField: '_id',
-                    foreignField: 'volunteerId',
+                    from: 'volunteers',
+                    localField: 'volunteerId',
+                    foreignField: '_id',
                     as: 'volunteerId'
                 }
             },
             {
                 $lookup: {
-                    from: 'Volunteer',
-                    localField: '_id',
-                    foreignField: 'backupVolunteer',
+                    from: 'volunteers',
+                    localField: 'backupVolunteer',
+                    foreignField: '_id',
                     as: 'backupVolunteer'
                 }
             },
             {
                 $lookup: {
-                    from: 'Volunteer',
-                    localField: '_id',
-                    foreignField: 'availableVolunteer',
+                    from: 'volunteers',
+                    localField: 'availableVolunteer',
+                    foreignField: '_id',
                     as: 'availableVolunteer'
                 }
             },
@@ -52,6 +52,16 @@ const getSchedule = async (req, res, next) => {
                 $sort: {
                     day: 1,
                     time: 1
+                }
+            },
+            {
+                $project: {
+                    students: {
+                        password: 0
+                    },
+                    availableVolunteer: {
+                        password: 0
+                    }
                 }
             }
         ])
@@ -64,27 +74,40 @@ const getSchedule = async (req, res, next) => {
 
 const addStudentId = async (req, res, next) => {
     try {
-        const currentUser = req.user._doc;
+        const currentUser = { ...req.user._doc, role: req.user.role };
         if (currentUser.role !== 'Admin') errResponse("Access denied", 403);
-        const { startTime, endTime, day, studentId } = req.body;
+
+        const { endTime, day, studentId, subject, building, room, floor, note } = req.body;
+        let { startTime } = req.body;
 
         const existingStudent = await Student.findById(studentId);
         if (!existingStudent) errResponse("Student not found", 404);
-
         // Lopping schedule 
         while (startTime < endTime) {
-            const existingSchedule = await Schedule.findById({ day, time: startTime });
-            if (existingSchedule) {
-                existingSchedule.studentId.push(studentId);
-                await existingSchedule.save();
+            const existingSchedule = await Schedule.findOne({ day, time: startTime });
+            let currentSchedule = existingSchedule;
+            if (currentSchedule) {
+                currentSchedule.studentId.push(existingStudent);
+                await currentSchedule.save();
             } else {
-                const newSchedule = new Schedule({
+                currentSchedule = new Schedule({
                     day,
                     time: startTime,
                     studentId: existingStudent,
                 })
-                await newSchedule.save();
+                await currentSchedule.save();
             }
+            const newClass = new Class({
+                scheduleId: currentSchedule,
+                studentId: existingStudent,
+                subject,
+                building,
+                room,
+                floor,
+                note: note || ""
+            })
+            await newClass.save();
+            startTime++
         }
 
         res.status(201).json({ success: true, message: "Success add student to schedule" });
@@ -96,19 +119,26 @@ const addStudentId = async (req, res, next) => {
 
 const removeStudentId = async (req, res, next) => {
     try {
-        const currentUser = req.user._doc;
+        const currentUser = { ...req.user._doc, role: req.user.role };
         if (currentUser.role !== 'Admin') errResponse("Access denied", 403);
-        const { startTime, endTime, day, studentId } = req.body;
+        const { endTime, day, studentId } = req.body;
+        let { startTime } = req.body;
 
         const existingStudent = await Student.findById(studentId);
         if (!existingStudent) errResponse("Student not found", 404);
 
         // Lopping schedule 
         while (startTime < endTime) {
-            const existingSchedule = await Schedule.findById({ day, time: startTime });
+            const existingSchedule = await Schedule.findOne({ day, time: startTime });
+            const existingClass = await Class.findOne({ scheduleId: existingSchedule, studentId })
             if (!existingSchedule) errResponse("Schedule not found", 404);
-            existingSchedule.studentId.pull(studentId);
+            if (!existingClass) errResponse("Class not found", 404);
+
+            await Class.findByIdAndDelete(existingClass);
+            existingSchedule.studentId.pull(existingStudent);
+
             await existingSchedule.save();
+            startTime++;
         }
         res.status(201).json({ success: true, message: "Success remove student from schedule" });
     } catch (err) {
@@ -119,16 +149,19 @@ const removeStudentId = async (req, res, next) => {
 
 const addVolunteerId = async (req, res, next) => {
     try {
-        const currentUser = req.user._doc;
+        const currentUser = { ...req.user._doc, role: req.user.role };
         if (currentUser.role !== 'Admin') errResponse("Access denied", 403);
-        const { volunteerId, startTime, endTime, day } = req.body;
+
+        const { volunteerId, endTime, day } = req.body;
+        let { startTime } = req.body;
+
         const existingVolunteer = await Volunteer.findById(volunteerId);
         if (!existingVolunteer) errResponse("Volunteer not found", 404);
 
 
         // Lopping schedule
         while (startTime < endTime) {
-            const existingSchedule = await Schedule.find({ day, time: startTime })
+            const existingSchedule = await Schedule.findOne({ day, time: startTime })
             if (existingSchedule) {
                 existingSchedule.volunteerId.push(volunteerId);
                 await existingSchedule.save();
@@ -140,6 +173,7 @@ const addVolunteerId = async (req, res, next) => {
                 })
                 await newSchedule.save();
             }
+            startTime++;
         }
 
         res.status(201).json({ success: true, message: "Success add volunteer to schedule" })
@@ -151,19 +185,23 @@ const addVolunteerId = async (req, res, next) => {
 
 const removeVolunteerId = async (req, res, next) => {
     try {
-        const currentUser = req.user._doc;
+        const currentUser = { ...req.user._doc, role: req.user.role };
         if (currentUser.role !== 'Admin') errResponse("Access denied", 403);
-        const { volunteerId, startTime, endTime, day } = req.body;
+
+        const { volunteerId, endTime, day } = req.body;
+        let { startTime } = req.body;
+
         const existingVolunteer = await Volunteer.findById(volunteerId);
         if (!existingVolunteer) errResponse("Volunteer not found", 404);
 
 
         // Lopping schedule
         while (startTime < endTime) {
-            const existingSchedule = await Schedule.find({ day, time: startTime });
+            const existingSchedule = await Schedule.findOne({ day, time: startTime });
             if (!existingSchedule) errResponse("Schedule not found", 404);
-            existingSchedule.volunteerId.pull(volunteerId)
-            await existingSchedule.save()
+            existingSchedule.volunteerId.pull(volunteerId);
+            await existingSchedule.save();
+            startTime++;
         }
 
         res.status(201).json({ success: true, message: "Success remove volunteer from schedule" })
@@ -175,12 +213,17 @@ const removeVolunteerId = async (req, res, next) => {
 
 const addBackupVolunteer = async (req, res, next) => {
     try {
-        const currentUser = req.user._doc;
+        const currentUser = { ...req.user._doc, role: req.user.role };
         if (currentUser.role !== 'Admin') errResponse("Access denied", 403)
 
-        const { startTime, endTime, day, volunteerId } = req.body;
+        const { endTime, day, volunteerId } = req.body;
+        let { startTime } = req.body;
+
+        const existingVolunteer = await Volunteer.findById(volunteerId);
+        if (!existingVolunteer) errResponse("Volunteer not found", 404);
+
         while (startTime < endTime) {
-            const existingSchedule = await Schedule.find({ day, time: startTime });
+            const existingSchedule = await Schedule.findOne({ day, time: startTime });
             if (existingSchedule) {
                 existingSchedule.backupVolunteer.push(volunteerId);
                 await existingSchedule.save();
@@ -192,6 +235,7 @@ const addBackupVolunteer = async (req, res, next) => {
                 })
                 await newSchedule.save();
             }
+            startTime++;
         }
         res.status(201).json({ success: true, message: "Success add backup volunteer to schedule" });
     } catch (err) {
@@ -202,15 +246,21 @@ const addBackupVolunteer = async (req, res, next) => {
 
 const removeBackupVolunteer = async (req, res, next) => {
     try {
-        const currentUser = req.user._doc;
+        const currentUser = { ...req.user._doc, role: req.user.role };
         if (currentUser.role !== 'Admin') errResponse("Access denied", 403)
 
-        const { startTime, endTime, day, volunteerId } = req.body;
+        const { endTime, day, volunteerId } = req.body;
+        let { startTime } = req.body;
+
+        const existingVolunteer = await Volunteer.findById(volunteerId);
+        if (!existingVolunteer) errResponse("Volunteer not found", 404);
+
         while (startTime < endTime) {
-            const existingSchedule = await Schedule.find({ day, time: startTime });
+            const existingSchedule = await Schedule.findOne({ day, time: startTime });
             if (!existingSchedule) errResponse("Schedule not found", 404)
             existingSchedule.backupVolunteer.pull(volunteerId)
             await existingSchedule.save()
+            startTime++;
         }
         res.status(201).json({ success: true, message: "Success remove backup volunteer from schedule" });
     } catch (err) {
@@ -222,12 +272,14 @@ const removeBackupVolunteer = async (req, res, next) => {
 
 const addAvailableVolunteer = async (req, res, next) => {
     try {
-        const currentUser = req.user._doc;
+        const currentUser = { ...req.user._doc, role: req.user.role };
         if (currentUser.role !== 'Volunteer') errResponse("Access denied", 403);
 
-        const { startTime, endTime, day } = req.body;
+        const { endTime, day } = req.body;
+        let { startTime } = req.body;
+
         while (startTime < endTime) {
-            const existingSchedule = await Schedule.find({ day, time: startTime });
+            const existingSchedule = await Schedule.findOne({ day, time: startTime });
             if (existingSchedule) {
                 existingSchedule.availableVolunteer.push(currentUser);
                 await existingSchedule.save();
@@ -239,6 +291,7 @@ const addAvailableVolunteer = async (req, res, next) => {
                 })
                 await newSchedule.save();
             }
+            startTime++;
         }
         res.status(201).json({ success: true, message: "Success add available volunteer to schedule" })
     } catch (err) {
@@ -249,18 +302,23 @@ const addAvailableVolunteer = async (req, res, next) => {
 
 const removeAvailableVolunteer = async (req, res, next) => {
     try {
-        const currentUser = req.user._doc;
+        const currentUser = { ...req.user._doc, role: req.user.role };
         if (currentUser.role !== 'Volunteer') errResponse("Access denied", 403);
+        const { endTime, day } = req.body;
+        let { startTime } = req.body;
 
-        const { startTime, endTime, day } = req.body;
         while (startTime < endTime) {
-            const existingSchedule = await Schedule.find({ day, time: startTime });
+            const existingSchedule = await Schedule.findOne({ day, time: startTime });
             if (!existingSchedule) errResponse("Schedule not found", 404);
+            const availableVolunteerIndex = existingSchedule.availableVolunteer.findIndex(volunteer => volunteer._id.toString() === currentUser._id.toString());
+            if (availableVolunteerIndex === -1) errResponse("Volunteer not found in available volunteer field")
+
 
             existingSchedule.availableVolunteer.pull(currentUser);
             await existingSchedule.save();
+            startTime++;
         }
-        res.status(201).json({ success: true, message: "Success add available volunteer to schedule" })
+        res.status(201).json({ success: true, message: "Success remove available volunteer from schedule" })
     } catch (err) {
         if (!err.statusCode) err.statusCode = 500;
         next(err)
@@ -269,13 +327,13 @@ const removeAvailableVolunteer = async (req, res, next) => {
 
 const changePicketStatus = async (req, res, next) => {
     try {
-        const currentUser = req.user._doc;
+        const currentUser = { ...req.user._doc, role: req.user.role };
         if (currentUser.role === 'Student') errResponse("Access denied", 403);
         const { startTime, endTime, day, status, volunteerId } = req.body;
 
         // Lopping schedule
         while (startTime < endTime) {
-            const existingSchedule = await Schedule.find({ day, time: startTime });
+            const existingSchedule = await Schedule.findOne({ day, time: startTime });
             if (!existingSchedule) errResponse("Schedule not found", 404);
             const existingVolunteerIndex = existingSchedule.volunteerId.findIndex(volunteer => volunteer._id === volunteerId);
             if (existingVolunteerIndex === -1) errResponse("Schedule dont have volunteer id yet", 404);

@@ -4,17 +4,21 @@ const { addStudentId, removeStudentId, getSchedule, addVolunteerId, removeVolunt
 
 router.get('/', getSchedule);
 
+// Student
 router.post('/add/student', addStudentId);
-router.post('/remove/student', removeStudentId);
+router.delete('/remove/student', removeStudentId);
 
+// VolunteerId
 router.post('/add/volunteerId', addVolunteerId);
-router.post('/remove/volunteerId', removeVolunteerId);
+router.delete('/remove/volunteerId', removeVolunteerId);
 
+// Backup Volunteer
 router.post('/add/backupVolunteer', addBackupVolunteer);
-router.post('/remove/backupVolunteer', removeBackupVolunteer);
+router.delete('/remove/backupVolunteer', removeBackupVolunteer);
 
+// Available Volunteer
 router.post('/add/availableVolunteer', addAvailableVolunteer);
-router.post('/remove/availableVolunteer', removeAvailableVolunteer)
+router.delete('/remove/availableVolunteer', removeAvailableVolunteer)
 
 
 router.put('/changePicketStatus', changePicketStatus);
