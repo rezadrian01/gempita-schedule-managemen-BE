@@ -1,4 +1,4 @@
-const jwt = require("jwt");
+const jwt = require("jsonwebtoken");
 const Volunteer = require("../models/volunteer");
 const Student = require("../models/student");
 const Admin = require("../models/admin");

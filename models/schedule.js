@@ -28,12 +28,12 @@ const scheduleSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: "Volunteer"
     }],
-    status: {
+    status: [{
         type: String,
         enum: ['On Schedule', 'Empty', 'Replaced'],
         default: "On Schedule",
         required: true
-    }
+    }]
 })
 
 module.exports = mongoose.model("Schedule", scheduleSchema)

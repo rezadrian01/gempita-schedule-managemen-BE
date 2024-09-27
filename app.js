@@ -10,6 +10,9 @@ const authRoute = require("./routes/authRoute");
 const accountRoute = require('./routes/accountRoute');
 const scheduleRoute = require('./routes/scheduleRoute');
 
+// Middleware
+const authMiddleware = require('./middleware/authMiddleware')
+
 config();
 const app = express();
 const VERSION = "/api/v1";
@@ -18,6 +21,8 @@ app.use(cors()).use(bodyParser.json());
 
 // API
 app.use(`${VERSION}/auth`, authRoute);
+
+app.use('/', authMiddleware)
 app.use(`${VERSION}/account`, accountRoute);
 app.use(`${VERSION}/schedule`, scheduleRoute);
 

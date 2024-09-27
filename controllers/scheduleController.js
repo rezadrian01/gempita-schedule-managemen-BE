@@ -67,7 +67,7 @@ const getSchedule = async (req, res, next) => {
 const addStudentId = async (req, res, next) => {
     try {
         const currentUser = req.user;
-        if (!currentUser.isLeader) errResponse("Access denied", 403);
+        if (currentUser.role !== 'Admin') errResponse("Access denied", 403);
         const { startTime, endTime, day, studentId } = req.body;
 
         const existingStudent = await Student.findById(studentId);
@@ -98,11 +98,11 @@ const addStudentId = async (req, res, next) => {
 const addVolunteerId = async (req, res, next) => {
     try {
         const currentUser = req.user;
-        if (!currentUser.isLeader) errResponse("Access denied", 403);
-        const existingVolunteer = await Volunteer.findById()
+        if (currentUser.role !== 'Admin') errResponse("Access denied", 403);
+        const { volunteerId, startTime, endTime, day } = req.body;
+        const existingVolunteer = await Volunteer.findById(volunteerId);
         if (!existingVolunteer) errResponse("Volunteer not found", 404);
 
-        const { volunteerId, startTime, endTime, day } = req.body;
 
         // Lopping schedule
         while (startTime < endTime) {
@@ -128,7 +128,25 @@ const addVolunteerId = async (req, res, next) => {
 }
 const addBackupVolunteer = async (req, res, next) => {
     try {
+        const currentUser = req.user;
+        if (currentUser.role !== 'Admin') errResponse("Access denied", 403)
 
+        const { startTime, endTime, day, volunteerId } = req.body;
+        while (startTime < endTime) {
+            const existingSchedule = await Schedule.find({ day, time: startTime });
+            if (existingSchedule) {
+                existingSchedule.backupVolunteer.push(volunteerId);
+                await existingSchedule.save();
+            } else {
+                const newSchedule = new Schedule({
+                    day,
+                    time: startTime,
+                    backupVolunteer: volunteerId
+                })
+                await newSchedule.save();
+            }
+        }
+        res.status(201).json({ success: true, message: "Success add backup volunteer to schedule" });
     } catch (err) {
         if (!err.statusCode) err.statusCode = 500
         next(err)
@@ -138,13 +156,25 @@ const addBackupVolunteer = async (req, res, next) => {
 
 const addAvailableVolunteer = async (req, res, next) => {
     try {
-        let isClassSchedule = false;
-        const currentUser = await Volunteer.findOne({ NIM: req.id });
-        if (!currentUser) {
-            isClassSchedule = true
-            currentUser = await Student.findOne({ NIM: req.id }) || await Student.findOne({ NIM: req.body.nim });
-        }
+        const currentUser = req.user;
+        if (currentUser.role !== 'Volunteer') errResponse("Access denied", 403);
 
+        const { startTime, endTime, day } = req.body;
+        while (startTime < endTime) {
+            const existingSchedule = await Schedule.find({ day, time: startTime });
+            if (existingSchedule) {
+                existingSchedule.availableVolunteer.push(currentUser);
+                await existingSchedule.save();
+            } else {
+                const newSchedule = new Schedule({
+                    day,
+                    time: startTime,
+                    availableVolunteer: currentUser
+                })
+                await newSchedule.save();
+            }
+        }
+        res.status(201).json({ success: true, message: "Success add available volunteer to schedule" })
     } catch (err) {
         if (!err.statusCode) err.statusCode = 500
         next(err)
@@ -153,6 +183,8 @@ const addAvailableVolunteer = async (req, res, next) => {
 
 const changePicketStatus = async (req, res, next) => {
     try {
+        const currentUser = req.user;
+
 
     } catch (err) {
         if (!err.statusCode) err.statusCode = 500
@@ -162,4 +194,4 @@ const changePicketStatus = async (req, res, next) => {
 
 
 
-module.exports = { getSchedule, addStudentId, addVolunteerId }
+module.exports = { getSchedule, addStudentId, addVolunteerId, addBackupVolunteer, addAvailableVolunteer }
