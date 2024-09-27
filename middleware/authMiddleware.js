@@ -22,7 +22,7 @@ const authMiddleware = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_TOKEN);
 
       // Check the decoded NIM in Volunteer, Student, or Admin models
-      const currentUser = await Admin.findOne({ NIM: decoded?.nim });
+      let currentUser = await Admin.findOne({ NIM: decoded?.nim });
       let role = "Admin";
 
       if (!currentUser) {
