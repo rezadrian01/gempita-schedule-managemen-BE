@@ -20,6 +20,7 @@ const volunteerSchema = new Schema({
   },
   contact: {
     type: String,
+    default: ""
   },
 });
 

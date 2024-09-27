@@ -16,9 +16,11 @@ const student = new Schema({
   },
   programStudy: {
     type: String,
+    default: ""
   },
   contact: {
     type: String,
+    default: ""
   },
 });
 

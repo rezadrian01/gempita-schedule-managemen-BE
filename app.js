@@ -8,6 +8,7 @@ const cors = require("cors");
 // Routes
 const authRoute = require("./routes/authRoute");
 const accountRoute = require('./routes/accountRoute');
+const scheduleRoute = require('./routes/scheduleRoute');
 
 config();
 const app = express();
@@ -17,12 +18,13 @@ app.use(cors()).use(bodyParser.json());
 
 // API
 app.use(`${VERSION}/auth`, authRoute);
-app.use(`${VERSION}/account`, accountRoute)
+app.use(`${VERSION}/account`, accountRoute);
+app.use(`${VERSION}/schedule`, scheduleRoute);
 
 app.use((err, req, res, next) => {
     const msg = err.message || "An Error Occured";
     const data = err.data || [];
-    const statusCode = err.statusCode;
+    const statusCode = err.statusCode || 500;
     res.status(statusCode).json({ success: false, message: msg, data });
 });
 

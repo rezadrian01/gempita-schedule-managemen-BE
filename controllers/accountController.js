@@ -7,13 +7,12 @@ const { errResponse } = require('../utils/error')
 
 const getProfile = async (req, res, next) => {
     try {
-        const currentUser = await Volunteer.findOne({ NIM: req.id }).select('-password');
-        if (!currentUser) currentUser = await Student.findOne({ NIM: req.id }).select('-password');
-        if (!currentUser) currentUser = await Admin.findOne({ NIM: req.id }).select('-password');
-
         //Check Existing User
+        const currentUser = req.user;
         if (!currentUser) errResponse("Account not found", 404)
-        res.status(200).json({ success: true, message: "Success get profile", data: { ...currentUser } })
+        delete currentUser.role;
+        delete currentUser.password;
+        res.status(200).json({ success: true, message: "Success get profile", data: { ...currentUser._doc } })
     } catch (err) {
         if (!err.statusCode) err.statusCode = 500
         next(err)
@@ -22,11 +21,8 @@ const getProfile = async (req, res, next) => {
 
 const updateProfile = async (req, res, next) => {
     try {
-        const currentUser = await Volunteer.findOne({ NIM: req.id });
-        if (!currentUser) currentUser = await Student.findOne({ NIM: req.id });
-        if (!currentUser) currentUser = await Admin.findOne({ NIM: req.id });
-
         //Check Existing User
+        currentUser = req.user;
         if (!currentUser) errResponse("Account not found", 404);
 
         const { contact, currentPassword, newPassword, confirmNewPassword } = req.body;
@@ -51,11 +47,11 @@ const updateProfile = async (req, res, next) => {
 
 const createNewAdmin = async (req, res, next) => {
     try {
-        const currentAdmin = await Admin.findOne({ NIM: req.id });
+        const currentAdmin = req.user;
 
         //Validation
         if (!currentAdmin) errResponse("Admin not found", 404);
-        if (!currentAdmin.isLeader) errResponse("Access denied", 403);
+        if (!currentAdmin?.isLeader) errResponse("Access denied", 403);
 
         const { nim, name, password } = req.body;
         const newAdmin = new Admin({
