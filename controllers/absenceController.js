@@ -3,7 +3,7 @@ const Absence = require("../models/absence");
 
 // Function to record attendance
 const recordAttendance = async (req, res, next) => {
-  // Get id user
+  // Get user id
   const { _id } = req.user._doc;
 
   // Get filename from the file
@@ -39,4 +39,23 @@ const recordAttendance = async (req, res, next) => {
   }
 };
 
-module.exports = { recordAttendance };
+// Function to view absence history
+const viewAbsence = async (req, res, next) => {
+  // Get user id
+  const { _id } = req.user._doc;
+
+  try {
+    // Get absence data by volunteer id
+    const getAbsenceByVolunteerId = await Absence.findOne({ volunteerId: _id });
+
+    // Response data to client
+    res
+      .status(200)
+      .json({ message: "Request successfully", data: getAbsenceByVolunteerId });
+  } catch (err) {
+    if (!err.statusCode) err.statusCode = 500;
+    next(err);
+  }
+};
+
+module.exports = { recordAttendance, viewAbsence };
