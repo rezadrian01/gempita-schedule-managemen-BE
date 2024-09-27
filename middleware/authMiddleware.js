@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const Volunteer = require("../models/volunteer");
 const Student = require("../models/student");
 const Admin = require("../models/admin");
+const { errResponse } = require("../utils/error");
 
 // Auth Middleware for Volunteer, Student and Admin
 const authMiddleware = async (req, res, next) => {

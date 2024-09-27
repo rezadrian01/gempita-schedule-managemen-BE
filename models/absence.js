@@ -18,6 +18,7 @@ const absenceSchema = new Schema({
   },
   confirmation: {
     type: String,
+    enum: ["hadir", "tidak hadir", "digantikan", "menggantikan"],
     required: true,
   },
   documentation: {
