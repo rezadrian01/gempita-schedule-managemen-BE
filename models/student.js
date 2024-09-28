@@ -22,6 +22,10 @@ const student = new Schema({
     type: String,
     default: ""
   },
+  KRS: {
+    type: String,
+    default: ""
+  }
 });
 
 module.exports = mongoose.model("Student", student);

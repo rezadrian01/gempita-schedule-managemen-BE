@@ -2,7 +2,7 @@ const multer = require("multer");
 const path = require("path");
 
 // Multer configuration for image upload
-const storage = multer.diskStorage({
+const absenceImgStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, path.join(__dirname, "../public/img/absence"));
   },
@@ -11,8 +11,19 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage: storage });
+const KRSFileStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, "../public/KRS/"))
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  }
+})
 
-const uploadSingle = upload.single("documentation");
+const uploadAbsenceImg = multer({ storage: absenceImgStorage });
+const uploadKRS = multer({ storage: KRSFileStorage })
 
-module.exports = uploadSingle;
+const uploadSingleImage = uploadAbsenceImg.single("documentation");
+const uploadSigleFileKrs = uploadKRS.single('krs')
+
+module.exports = { uploadSingleImage, uploadSigleFileKrs };

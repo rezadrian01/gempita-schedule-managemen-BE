@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 // Import Auth Middleware
-const uploadSingle = require("../middleware/multerMiddleware");
+const { uploadSingleImage } = require("../middleware/multerMiddleware");
 
 const {
   recordAttendance,
@@ -13,6 +13,6 @@ const {
 router.get("/", viewAbsence);
 
 // Add absence
-router.post("/", uploadSingle, recordAttendance);
+router.post("/", uploadSingleImage, recordAttendance);
 
 module.exports = router;

@@ -7,7 +7,7 @@ const recordAttendance = async (req, res, next) => {
   const { _id } = req.user._doc;
 
   // Get filename from the file
-  const { filename } = req.file;
+  const { filename } = req?.file;
 
   // Get data from user
   const { studentId, date, confirmation } = req.body;

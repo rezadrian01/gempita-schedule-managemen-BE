@@ -3,6 +3,7 @@ const Student = require('../models/student');
 const Admin = require('../models/admin');
 const bcrypt = require('bcryptjs');
 
+
 const { errResponse } = require('../utils/error')
 
 const getProfile = async (req, res, next) => {
@@ -110,4 +111,20 @@ const swapAdminLeader = async (req, res, next) => {
     }
 }
 
-module.exports = { getProfile, updateProfile, createNewAdmin, deleteAdmin, swapAdminLeader }
+const uploadKRS = async (req, res, next) => {
+    try {
+        const { studentId } = req.body;
+        const { filename } = req.file;
+        const existingStudent = await Student.findById(studentId);
+        if (!existingStudent) errResponse("Student not found", 404);
+
+        existingStudent.KRS = filename;
+        await existingStudent.save();
+        res.status(201).json({ success: true, message: "Success upload KRS" })
+    } catch (err) {
+        if (!err.statusCode) err.statusCode = 500;
+        next(err)
+    }
+}
+
+module.exports = { getProfile, updateProfile, createNewAdmin, deleteAdmin, swapAdminLeader, uploadKRS }
