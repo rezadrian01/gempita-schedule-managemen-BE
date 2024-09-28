@@ -339,7 +339,7 @@ const changePicketStatus = async (req, res, next) => {
         while (startTime < endTime) {
             const existingSchedule = await Schedule.findOne({ day, time: startTime });
             if (!existingSchedule) errResponse("Schedule not found", 404);
-            const existingVolunteerIndex = existingSchedule.volunteerId.findIndex(volunteer => volunteer._id === volunteerId);
+            const existingVolunteerIndex = existingSchedule.volunteerId.findIndex(volunteer => volunteer._id.toString() === volunteerId);
             if (existingVolunteerIndex === -1) errResponse("Schedule dont have volunteer id yet", 404);
             existingSchedule.status[existingVolunteerIndex] = status;
             await existingSchedule.save();
