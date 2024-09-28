@@ -56,6 +56,7 @@ const getSchedule = async (req, res, next) => {
             },
             {
                 $project: {
+                    studentId: 0,
                     students: {
                         password: 0
                     },
@@ -74,6 +75,91 @@ const getSchedule = async (req, res, next) => {
         res.status(200).json({ success: true, message: "Success get schedules", data: schedules })
     } catch (err) {
         if (!err.statusCode) err.statusCode = 500;
+        next(err)
+    }
+}
+
+const searchSchedule = async (req, res, next) => {
+    try {
+        const { searchTerm } = req.params;
+        const schedules = await Schedule.aggregate([
+            {
+                $lookup: {
+                    from: 'students',
+                    localField: 'studentId',
+                    foreignField: '_id',
+                    as: 'students'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'volunteers',
+                    localField: 'volunteerId',
+                    foreignField: '_id',
+                    as: 'volunteerId'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'volunteers',
+                    localField: 'backupVolunteer',
+                    foreignField: '_id',
+                    as: 'backupVolunteer'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'volunteers',
+                    localField: 'availableVolunteer',
+                    foreignField: '_id',
+                    as: 'availableVolunteer'
+                }
+            },
+            {
+                $match: {
+                    $or: [
+                        {
+                            'students.name': { $regex: searchTerm, $options: 'i' }
+                        },
+                        {
+                            'volunteerId.name': { $regex: searchTerm, $options: 'i' }
+                        },
+                        {
+                            'backupVolunteer.name': { $regex: searchTerm, $options: 'i' }
+                        },
+                        {
+                            'availableVolunteer.name': { $regex: searchTerm, $options: 'i' }
+                        },
+                        {
+                            'day': { $eq: +searchTerm }
+                        },
+                        {
+                            'time': { $eq: +searchTerm }
+                        }
+                    ]
+                }
+            },
+            {
+                $project: {
+                    studentId: 0,
+                    students: {
+                        password: 0
+                    },
+                    availableVolunteer: {
+                        password: 0
+                    },
+                    backupVolunteer: {
+                        password: 0
+                    },
+                    volunteerId: {
+                        password: 0
+                    }
+                }
+            }
+        ])
+        res.status(200).json({ success: true, message: "Success get schedule", data: schedules })
+    } catch (err) {
+        if (!err.statusCode) err.statusCode = 500
         next(err)
     }
 }
@@ -354,4 +440,4 @@ const changePicketStatus = async (req, res, next) => {
 
 
 
-module.exports = { getSchedule, addStudentId, removeStudentId, addVolunteerId, removeVolunteerId, addBackupVolunteer, removeBackupVolunteer, addAvailableVolunteer, removeAvailableVolunteer, changePicketStatus }
+module.exports = { getSchedule, searchSchedule, addStudentId, removeStudentId, addVolunteerId, removeVolunteerId, addBackupVolunteer, removeBackupVolunteer, addAvailableVolunteer, removeAvailableVolunteer, changePicketStatus }
